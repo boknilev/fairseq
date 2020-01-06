@@ -10,6 +10,7 @@ Train a new model on one or across multiple GPUs.
 import collections
 import math
 import random
+import operator
 
 import numpy as np
 import torch
@@ -76,11 +77,14 @@ def main(args, init_distributed=False):
     train_meter = StopwatchMeter()
     train_meter.start()
     valid_subsets = args.valid_subset.split(',')
+    early_stop_patience = 0
+    best_valid_loss = -math.inf if args.maximize_best_checkpoint_metric else math.inf 
     while (
         lr > args.min_lr
         and (epoch_itr.epoch < max_epoch or (epoch_itr.epoch == max_epoch
             and epoch_itr._next_epoch_itr is not None))
         and trainer.get_num_updates() < max_update
+        and (args.patience <= 0 or early_stop_patience < args.patience)
     ):
         # train for one epoch
         train(args, trainer, task, epoch_itr)
@@ -100,6 +104,21 @@ def main(args, init_distributed=False):
         reload_dataset = ':' in getattr(args, 'data', '')
         # sharded data: get train iterator for next epoch
         epoch_itr = trainer.get_train_iterator(epoch_itr.epoch, load_dataset=reload_dataset)
+
+        # check patience
+        current_loss = valid_losses[0]
+        #print('current_loss:', current_loss)
+        #print('best_valid_loss:', best_valid_loss)
+        better_function = operator.gt if args.maximize_best_checkpoint_metric else operator.lt 
+        if better_function(current_loss, best_valid_loss):
+            early_stop_patience = 0
+            best_valid_loss = current_loss
+        else:
+            early_stop_patience += 1
+            if args.patience > 0 and early_stop_patience == args.patience:
+                print('| reached patience of {0}, will stop'.format(args.patience))
+
+
     train_meter.stop()
     print('| done training in {:.1f} seconds'.format(train_meter.sum))
 
