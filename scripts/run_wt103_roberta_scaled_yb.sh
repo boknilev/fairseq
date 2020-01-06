@@ -3,8 +3,10 @@
 source activate small-scale 
 
 datapath=/data/sls/temp/belinkov/lm-generalization/data/wikitext-103/data-
+# datapath=/scratch/belinkov/small-scale/data/wikitext-103/data-
 databin=roberta-data-bin
 exprdir=/data/sls/temp/belinkov/small-scale/expr/wikitext-103
+# exprdir=/scratch/belinkov/small-scale/expr/wikitext-103
 
 
 function train_scaled(){
@@ -32,18 +34,19 @@ function train_scaled(){
     echo "encoder_ffn_embed_dim: $encoder_ffn_embed_dim"
     echo "encoder_attention_heads: $encoder_attention_heads"
 
-    #TOTAL_UPDATES=125000    # Total number of training steps
-    TOTAL_UPDATES=100    # Total number of training steps
+    TOTAL_UPDATES=125000    # Total number of training steps
+    #TOTAL_UPDATES=100    # Total number of training steps
     WARMUP_UPDATES=10000    # Warmup the learning rate over this many updates
     PEAK_LR=0.0005          # Peak learning rate, adjust as needed
     TOKENS_PER_SAMPLE=512   # Max sequence length
     MAX_POSITIONS=512       # Num. positional embeddings (usually same as above)
     MAX_SENTENCES=16        # Number of sequences per batch (batch size)
-    UPDATE_FREQ=16         # Increase the 
+    UPDATE_FREQ=16         # Increase the batch size 16x
 
 
     # --arch roberta_1_64_256_1 \
-    fairseq-train --fp16 $datadir \
+    # fairseq-train --fp16 $datadir \
+    fairseq-train $datadir \
         --task masked_lm \
         --criterion masked_lm \
         --arch roberta \
@@ -58,11 +61,28 @@ function train_scaled(){
         --lr $PEAK_LR --warmup-updates $WARMUP_UPDATES --total-num-update $TOTAL_UPDATES \
         --dropout 0.1 --attention-dropout 0.1 --weight-decay 0.01 \
         --max-sentences $MAX_SENTENCES --update-freq $UPDATE_FREQ \
-        --max-update $TOTAL_UPDATES --log-format simple --log-interval 1 --no-epoch-checkpoints --save-dir $checkpointsdir --valid-subset 'valid,test' --skip-invalid-size-inputs-valid-test &> $logpath 
+        --max-update $TOTAL_UPDATES --log-format simple --log-interval 1 \
+        --no-epoch-checkpoints --save-dir $checkpointsdir \
+        --valid-subset 'valid,test' --skip-invalid-size-inputs-valid-test \
+        --num-workers 4 --ddp-backend no_c10d --distributed-no-spawn --patience 10 &> $logpath 
 
 }
-for w in 1 
+#for w in 1 2 3 4	
+for w in 1 	
 do
-    train_scaled 32 $w
+	#for d in 32 16 8 
+	for d in 4    
+	do
+		train_scaled $d $w
+	done
 done
 
+
+# for the record, if we want to save best/last checkpoints need to set this instead of --no-save
+# --no-epoch-checkpoints --save-dir $checkpointsdir \
+# for disabling validation, do:
+# --disable-validation \
+# for not saving checkpoints
+# --no-save \
+# validate/save only every 10 epochs
+# --validate-interval 10 --save-interval 10 \
