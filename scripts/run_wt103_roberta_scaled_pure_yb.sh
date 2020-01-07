@@ -21,8 +21,8 @@ function train_scaled(){
     dataset=wt103
     datadir=${datapath}$dsdiv/$databin
     ds_fraction=$(python -c "print(1/$dsdiv)")
-    logpath=$exprdir/roberta.d$dsdiv.w$width.lr$lr.log 
-    checkpointsdir=$exprdir/roberta-checkpoints-d${dsdiv}-w${width}-lr${lr}
+    logpath=$exprdir/roberta.d$dsdiv.w$width.lr$lr.pure.log 
+    checkpointsdir=$exprdir/roberta-checkpoints-d${dsdiv}-w${width}-lr${lr}-pure
 
     echo 'Run training... '
     echo "dsdiv: $dsdiv"
@@ -38,7 +38,8 @@ function train_scaled(){
 
     TOTAL_UPDATES=125000    # Total number of training steps
     #TOTAL_UPDATES=100    # Total number of training steps
-    WARMUP_UPDATES=10000    # Warmup the learning rate over this many updates
+    #WARMUP_UPDATES=10000    # Warmup the learning rate over this many updates
+    WARMUP_UPDATES=0    # Warmup the learning rate over this many updates
     PEAK_LR=0.0005          # Peak learning rate, adjust as needed
     TOKENS_PER_SAMPLE=512   # Max sequence length
     MAX_POSITIONS=512       # Num. positional embeddings (usually same as above)
@@ -59,8 +60,7 @@ function train_scaled(){
         --sample-break-mode complete \
         --tokens-per-sample $TOKENS_PER_SAMPLE \
         --optimizer adam --adam-betas '(0.9,0.98)' --adam-eps 1e-6 --clip-norm 0.0 \
-        --lr-scheduler polynomial_decay \
-        --lr $lr --warmup-updates $WARMUP_UPDATES --total-num-update $TOTAL_UPDATES \
+        --lr $lr --warmup-updates $WARMUP_UPDATES \
         --dropout 0.1 --attention-dropout 0.1 --weight-decay 0.01 \
         --max-sentences $MAX_SENTENCES --update-freq $UPDATE_FREQ \
         --max-update $TOTAL_UPDATES --log-format simple --log-interval 1 \
@@ -71,13 +71,14 @@ function train_scaled(){
 }
 #for w in 1 2 3 4	
 #for w in 1 5  	
-for w in 5    	
+for w in 1    	
 do
 	#for d in 32 16 8 
 	#for d in 32 4    
 	for d in 32     
 	do
-		for lr in 0.0005 0.00005 0.000005 
+		#for lr in 0.0005 0.00005 0.000005 
+		for lr in 0.0005 
 		do 
 			train_scaled $d $w $lr
 		done
@@ -95,3 +96,8 @@ done
 # --no-save \
 # validate/save only every 10 epochs
 # --validate-interval 10 --save-interval 10 \
+
+# for lr schedule 
+# --lr-scheduler polynomial_decay \
+# --lr $lr --warmup-updates $WARMUP_UPDATES --total-num-update $TOTAL_UPDATES \
+	

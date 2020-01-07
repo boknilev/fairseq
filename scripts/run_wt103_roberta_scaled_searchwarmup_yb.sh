@@ -12,7 +12,8 @@ exprdir=/data/sls/temp/belinkov/small-scale/expr/wikitext-103
 function train_scaled(){
     dsdiv=$1
     width=$2
-    lr=$3
+    warmup=$3
+    lr=0.0005
     encoder_layers=$(python -c "print($width * 1)")
     encoder_embed_dim=$(python -c "print($width * 64)")
     encoder_ffn_embed_dim=$(python -c "print($encoder_embed_dim * 4)")
@@ -21,13 +22,14 @@ function train_scaled(){
     dataset=wt103
     datadir=${datapath}$dsdiv/$databin
     ds_fraction=$(python -c "print(1/$dsdiv)")
-    logpath=$exprdir/roberta.d$dsdiv.w$width.lr$lr.log 
-    checkpointsdir=$exprdir/roberta-checkpoints-d${dsdiv}-w${width}-lr${lr}
+    logpath=$exprdir/roberta.d$dsdiv.w$width.warmup$warmup.log 
+    checkpointsdir=$exprdir/roberta-checkpoints-d${dsdiv}-w${width}-warmup${warmup}
 
     echo 'Run training... '
     echo "dsdiv: $dsdiv"
     echo "width: $width"
     echo "lr: $lr"
+    echo "warmup: $warmup"
     echo $dataset
     echo $datadir
     echo "log: $logpath"
@@ -38,7 +40,8 @@ function train_scaled(){
 
     TOTAL_UPDATES=125000    # Total number of training steps
     #TOTAL_UPDATES=100    # Total number of training steps
-    WARMUP_UPDATES=10000    # Warmup the learning rate over this many updates
+    #WARMUP_UPDATES=10000    # Warmup the learning rate over this many updates
+    WARMUP_UPDATES=$warmup    # Warmup the learning rate over this many updates
     PEAK_LR=0.0005          # Peak learning rate, adjust as needed
     TOKENS_PER_SAMPLE=512   # Max sequence length
     MAX_POSITIONS=512       # Num. positional embeddings (usually same as above)
@@ -77,9 +80,9 @@ do
 	#for d in 32 4    
 	for d in 32     
 	do
-		for lr in 0.0005 0.00005 0.000005 
+		for warmup in 500 1000 2000  
 		do 
-			train_scaled $d $w $lr
+			train_scaled $d $w $warmup
 		done
 	done
 done
