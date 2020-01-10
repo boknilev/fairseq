@@ -13,6 +13,7 @@ function train_scaled(){
     dsdiv=$1
     width=$2
     lr=$3
+    gpus=$4
     encoder_layers=$(python -c "print($width * 1)")
     encoder_embed_dim=$(python -c "print($width * 64)")
     encoder_ffn_embed_dim=$(python -c "print($encoder_embed_dim * 4)")
@@ -21,8 +22,8 @@ function train_scaled(){
     dataset=wt103
     datadir=${datapath}$dsdiv/$databin
     ds_fraction=$(python -c "print(1/$dsdiv)")
-    logpath=$exprdir/roberta.d$dsdiv.w$width.lr$lr.pure.log 
-    checkpointsdir=$exprdir/roberta-checkpoints-d${dsdiv}-w${width}-lr${lr}-pure
+    logpath=$exprdir/roberta.d$dsdiv.w$width.lr$lr.pure.gpus$gpus.log 
+    checkpointsdir=$exprdir/roberta-checkpoints-d${dsdiv}-w${width}-lr${lr}-pure-gpus${gpus}
 
     echo 'Run training... '
     echo "dsdiv: $dsdiv"
@@ -69,6 +70,8 @@ function train_scaled(){
         --num-workers 4 --ddp-backend no_c10d --distributed-no-spawn --patience 10 &> $logpath 
 
 }
+
+gpus=8
 #for w in 1 2 3 4 5	
 #for w in 1 5  	
 for w in 1 
@@ -80,7 +83,7 @@ do
 		#for lr in 0.0005 0.00005 0.000005 
 		for lr in 0.0005 
 		do 
-			train_scaled $d $w $lr
+			train_scaled $d $w $lr $gpus
 		done
 	done
 done
