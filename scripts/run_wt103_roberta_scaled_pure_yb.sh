@@ -69,13 +69,13 @@ function train_scaled(){
         --num-workers 4 --ddp-backend no_c10d --distributed-no-spawn --patience 10 &> $logpath 
 
 }
-#for w in 1 2 3 4	
+#for w in 1 2 3 4 5	
 #for w in 1 5  	
-for w in 1    	
+for w in 1 
 do
-	#for d in 32 16 8 
+	#for d in 32 16 8 4
 	#for d in 32 4    
-	for d in 32     
+	for d in 32 16 8 4
 	do
 		#for lr in 0.0005 0.00005 0.000005 
 		for lr in 0.0005 
